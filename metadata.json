@@ -1,0 +1,7 @@
+{
+  "name": "NQ OFFICE AI - Văn phòng số THPT Ngô Quyền",
+  "description": "Hệ thống văn phòng số và điều hành thông minh Trường THPT Ngô Quyền tích hợp trợ lý AI",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
