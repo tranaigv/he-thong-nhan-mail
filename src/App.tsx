@@ -230,20 +230,32 @@ export default function App() {
 
   // Find sheet for currently selected advisory doc
   const currentAdvisorySheet = selectedDocForAdvisory
-    ? advisorySheets.find((s) => s.documentId === selectedDocForAdvisory.id) || {
+    ? advisorySheets.find((s) => s.documentId === selectedDocForAdvisory.id) ||
+      selectedDocForAdvisory.advisorySheet || {
         id: `ADV-${selectedDocForAdvisory.id}`,
         documentId: selectedDocForAdvisory.id,
+        documentNumber: selectedDocForAdvisory.documentNumber,
+        aiSummary: selectedDocForAdvisory.summary || '',
+        keyRequirements: selectedDocForAdvisory.reportingRequirements || '',
         executiveOpinion: `Kính chuyển Ban Giám hiệu và các Tổ bộ phận nghiên cứu thực hiện nghiêm túc theo chỉ đạo tại văn bản số ${selectedDocForAdvisory.documentNumber}.`,
         tasks: [
           {
+            taskId: 'NV-01',
             title: `Triển khai các nội dung theo công văn ${selectedDocForAdvisory.documentNumber}`,
+            description: selectedDocForAdvisory.summary || '',
             owner: 'Nguyễn Văn Tuấn',
-            department: 'Tổ Toán - Tin học',
-            deadline: selectedDocForAdvisory.deadline,
+            collaborators: ['Phạm Thu Hà (Văn thư)'],
+            approver: 'Hiệu trưởng Đỗ Thị Lan',
+            deadline: selectedDocForAdvisory.deadline || '2026-09-30',
+            priority: 'Cao',
             outputRequired: 'Báo cáo kế hoạch chi tiết',
-            urgency: selectedDocForAdvisory.urgency,
+            reportReceiver: 'Ban Giám hiệu',
+            evidence: 'File minh chứng nộp trên phần mềm',
+            confidence: 0.95,
           },
         ],
+        proposedOwner: 'Nguyễn Văn Tuấn',
+        outputProduct: 'Báo cáo kế hoạch chi tiết',
         draftEmailSubject: `[NQ OFFICE] Triển khai công văn số ${selectedDocForAdvisory.documentNumber}`,
         draftEmailBody: `Kính gửi các đồng chí phụ trách,\nĐề nghị nghiên cứu và thực hiện công văn ${selectedDocForAdvisory.documentNumber} trước ngày ${selectedDocForAdvisory.deadline}.`,
         status: 'Chờ duyệt',
@@ -419,6 +431,11 @@ export default function App() {
         isOpen={isIntakeOpen}
         onClose={() => setIsIntakeOpen(false)}
         onSuccess={handleDocIntakeSuccess}
+        onExtractionComplete={(doc) => {
+          if (doc.advisorySheet) {
+            handleDocIntakeSuccess(doc, doc.advisorySheet);
+          }
+        }}
         currentUser={currentUser}
       />
 

@@ -13,18 +13,22 @@ import {
   Loader2,
   FileSpreadsheet,
 } from 'lucide-react';
-import { DocumentItem } from '../types';
+import { DocumentItem, AdvisorySheet, UserProfile } from '../types';
 
 interface DocumentIntakeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onExtractionComplete: (newDoc: DocumentItem) => void;
+  onSuccess?: (newDoc: DocumentItem, sheet: AdvisorySheet) => void;
+  onExtractionComplete?: (newDoc: DocumentItem) => void;
+  currentUser?: UserProfile;
 }
 
 export const DocumentIntakeModal: React.FC<DocumentIntakeModalProps> = ({
   isOpen,
   onClose,
+  onSuccess,
   onExtractionComplete,
+  currentUser,
 }) => {
   const [activeTab, setActiveTab] = useState<'text' | 'file' | 'drag' | 'drive' | 'batch' | 'email'>('text');
   const [pastedText, setPastedText] = useState('');
@@ -146,10 +150,49 @@ Nguyễn Văn Phúc`,
         throw new Error(data.error || 'Trích xuất AI thất bại.');
       }
 
-      const ext = data.extractedData;
+      const ext = data.extractedData || {};
+      const docId = `DOC-${Date.now().toString().slice(-6)}`;
+      const docNum = ext.documentNumber || `CV-${Date.now().toString().slice(-4)}`;
+
+      const advisorySheet: AdvisorySheet = {
+        id: `ADV-${Date.now().toString().slice(-6)}`,
+        documentId: docId,
+        documentNumber: docNum,
+        aiSummary: ext.summary || 'Trích xuất tự động bởi Gemini AI.',
+        keyRequirements:
+          ext.reportingRequirements || 'Triển khai phân công các tổ và nộp sản phẩm đúng hạn.',
+        executiveOpinion: `Kính chuyển Ban Giám hiệu và các Tổ bộ phận nghiên cứu thực hiện nghiêm túc theo chỉ đạo tại văn bản số ${docNum}.`,
+        deadline: ext.deadline || '2026-09-30',
+        tasks: (ext.tasks || []).map((t: any, i: number) => ({
+          taskId: t.taskId || `NV-${String(i + 1).padStart(2, '0')}`,
+          title: t.title || 'Nhiệm vụ trích xuất',
+          description: t.description || '',
+          owner: t.owner || 'ThS. Trần Văn Hùng (PHT)',
+          collaborators: t.collaborators || ['Phạm Thu Hà (Văn thư)'],
+          approver: t.approver || 'TS. Đỗ Thị Lan (Hiệu trưởng)',
+          deadline: t.deadline || '2026-09-25',
+          priority: t.priority || 'Cao',
+          outputRequired: t.outputRequired || 'Kế hoạch hoặc Báo cáo',
+          reportReceiver: t.reportReceiver || 'Hiệu trưởng',
+          evidence: t.evidence || 'File minh chứng nộp trên phần mềm',
+          confidence: t.confidence || 0.95,
+        })),
+        proposedOwner: ext.tasks?.[0]?.owner || 'Ban Giám hiệu',
+        outputProduct: ext.tasks?.[0]?.outputRequired || 'Kế hoạch triển khai',
+        draftEmail: ext.draftEmail || {
+          subject: `[NQ OFFICE AI] Thông báo phân công công việc theo ${docNum}`,
+          body: `Kính gửi các Thầy/Cô,\n\nBan Giám hiệu Trường THPT Ngô Quyền gửi thông báo phân công nhiệm vụ theo văn bản số ${docNum}.\nĐề nghị các bộ phận thực hiện đúng hạn.`,
+        },
+        draftEmailSubject: ext.draftEmail?.subject || `[NQ OFFICE AI] Thông báo phân công công việc theo ${docNum}`,
+        draftEmailBody: ext.draftEmail?.body || `Kính gửi các Thầy/Cô,\n\nBan Giám hiệu Trường THPT Ngô Quyền gửi thông báo phân công nhiệm vụ theo văn bản số ${docNum}.\nĐề nghị các bộ phận thực hiện đúng hạn.`,
+        status: 'Chờ duyệt',
+        createdAt: new Date().toISOString(),
+        version: 'V1',
+      };
+
       const newDoc: DocumentItem = {
-        id: `DOC-${Date.now().toString().slice(-6)}`,
-        documentNumber: ext.documentNumber || `CV-${Date.now().toString().slice(-4)}`,
+        id: docId,
+        documentNumber: docNum,
         title: ext.title || filename,
         issuingAgency: ext.issuingAgency || 'Cơ quan ban hành',
         signer: ext.signer || 'Người ký văn bản',
@@ -168,38 +211,15 @@ Nguyễn Văn Phúc`,
         version: 'V1',
         docType: 'Văn bản đến',
         createdAt: new Date().toISOString(),
-        advisorySheet: {
-          documentId: `DOC-${Date.now().toString().slice(-6)}`,
-          documentNumber: ext.documentNumber || 'CV-MOI',
-          aiSummary: ext.summary || 'Trích xuất tự động bởi Gemini AI.',
-          keyRequirements:
-            ext.reportingRequirements || 'Triển khai phân công các tổ và nộp sản phẩm đúng hạn.',
-          deadline: ext.deadline || '2026-09-30',
-          tasks: (ext.tasks || []).map((t: any, i: number) => ({
-            taskId: t.taskId || `NV-${i + 1}`,
-            title: t.title || 'Nhiệm vụ trích xuất',
-            description: t.description || '',
-            owner: t.owner || 'ThS. Trần Văn Hùng (PHT)',
-            collaborators: t.collaborators || ['Phạm Thu Hà (Văn thư)'],
-            approver: t.approver || 'TS. Đỗ Thị Lan (Hiệu trưởng)',
-            deadline: t.deadline || '2026-09-25',
-            priority: t.priority || 'Cao',
-            outputRequired: t.outputRequired || 'Kế hoạch hoặc Báo cáo',
-            reportReceiver: t.reportReceiver || 'Hiệu trưởng',
-            evidence: t.evidence || 'File minh chứng nộp trên phần mềm',
-            confidence: t.confidence || 0.95,
-          })),
-          proposedOwner: ext.tasks?.[0]?.owner || 'Ban Giám hiệu',
-          outputProduct: ext.tasks?.[0]?.outputRequired || 'Kế hoạch triển khai',
-          draftEmail: ext.draftEmail || {
-            subject: `[NQ OFFICE AI] Thông báo phân công công việc theo ${ext.documentNumber}`,
-            body: `Kính gửi các Thầy/Cô,\n\nBan Giám hiệu Trường THPT Ngô Quyền gửi thông báo phân công nhiệm vụ theo văn bản số ${ext.documentNumber}.\nĐề nghị các bộ phận thực hiện đúng hạn.`,
-          },
-          status: 'Chờ duyệt',
-        },
+        advisorySheet,
       };
 
-      onExtractionComplete(newDoc);
+      if (typeof onSuccess === 'function') {
+        onSuccess(newDoc, advisorySheet);
+      }
+      if (typeof onExtractionComplete === 'function') {
+        onExtractionComplete(newDoc);
+      }
       onClose();
     } catch (err: any) {
       console.error(err);
